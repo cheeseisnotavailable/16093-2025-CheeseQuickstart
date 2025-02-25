@@ -3,7 +3,7 @@ package org.firstinspires.ftc.teamcode.references;
 import com.acmerobotics.dashboard.config.Config;
 
 @Config
-public class SSValues {
+public class HardwareValues {
     public static int AUTO_ARM_OFFSET = 487;
 
     //****DO NOT SET ARM VALUES LARGER THAN ARM_UP****

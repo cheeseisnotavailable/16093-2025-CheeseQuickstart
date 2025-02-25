@@ -46,7 +46,7 @@ import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequenceBuild
 import org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequenceRunner;
 import org.firstinspires.ftc.teamcode.SuperStructure;
 import org.firstinspires.ftc.teamcode.util.LynxModuleUtil;
-import org.firstinspires.ftc.teamcode.util.SlewRateLimiter;
+import org.firstinspires.ftc.teamcode.references.SlewRateLimiter;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -56,7 +56,8 @@ import java.util.function.BooleanSupplier;
 import XCYOS.Task;
 
 /*
- * Simple mecanum drive hardware implementation for REV hardware.
+ * The home of SimpleMove, currently for Pinpoint Odometry!
+ * Code very much not by me
  */
 @Config
 public class NewMecanumDrive extends MecanumDrive {
@@ -232,6 +233,7 @@ public class NewMecanumDrive extends MecanumDrive {
         } else if (signal != null) {
             setDriveSignal(signal);
         }
+        //THIS IS THE ORIGINAL
 //        updatePoseEstimate();
 //        DriveSignal signal = trajectorySequenceRunner.update(getPoseEstimate(), getPoseVelocity());
 //        if (simpleMoveIsActivate) {
@@ -327,26 +329,14 @@ public class NewMecanumDrive extends MecanumDrive {
     public static boolean ignoreDriveCoefficients = false;
     public void setFieldCentric(double x, double y, double rx, SuperStructure.Sequences sequence) {
         double botHeading = getHeading();
-        double driveCoefficientTrans;
-        double driveCoefficientRot;
+        double driveCoefficientTrans = 1;
+        double driveCoefficientRot = 1;
 
-
-        if(sequence == SuperStructure.Sequences.INTAKE_FAR){
+        /*This may change depending on the sequence!
+        e.g. if(sequence == SuperStructure.Sequences.INTAKE_FAR){
             driveCoefficientTrans = 0.4;
             driveCoefficientRot = 0.4;
-        }else if(sequence == SuperStructure.Sequences.INTAKE_NEAR){
-            driveCoefficientTrans = 0.3;
-            driveCoefficientRot = 0.3;
-        }else if (sequence == SuperStructure.Sequences.LOW_BASKET||sequence==SuperStructure.Sequences.HIGH_BASKET){
-            driveCoefficientTrans = 0.9;
-            driveCoefficientRot = 0.6;
-        } else if (sequence == SuperStructure.Sequences.HIGH_CHAMBER_PLACE){
-            driveCoefficientRot = 0.5;
-            driveCoefficientTrans = 0.5;
-        }else{
-            driveCoefficientTrans = 1;
-            driveCoefficientRot = 1;
-        }
+         */
 
         if(ignoreDriveCoefficients) {
             driveCoefficientTrans = 1;
@@ -357,10 +347,6 @@ public class NewMecanumDrive extends MecanumDrive {
         x = x*driveCoefficientTrans;
         rx =rx*-driveCoefficientRot;
 
-        if(sequence == SuperStructure.Sequences.HIGH_BASKET){
-            y = driveLimiter.calculate(y);
-            rx = turnLimiter.calculate(rx);
-        }
 
         double rotX = x * Math.cos(-botHeading) - y * Math.sin(-botHeading);
         double rotY = x * Math.sin(-botHeading) + y * Math.cos(-botHeading);
@@ -377,25 +363,12 @@ public class NewMecanumDrive extends MecanumDrive {
 
     public void setBotCentric(double x, double y, double rx, SuperStructure.Sequences sequence) {
         double botHeading = 0;
-        double driveCoefficientTrans;
-        double driveCoefficientRot;
+        double driveCoefficientTrans = 1;
+        double driveCoefficientRot = 1;
 
-        if(sequence == SuperStructure.Sequences.INTAKE_FAR){
-            driveCoefficientTrans = 0.3;
-            driveCoefficientRot = 0.2;
-        }else if(sequence == SuperStructure.Sequences.INTAKE_NEAR){
-            driveCoefficientTrans = 0.3;
-            driveCoefficientRot = 0.3;
-        }else if (sequence == SuperStructure.Sequences.LOW_BASKET||sequence==SuperStructure.Sequences.HIGH_BASKET){
-            driveCoefficientTrans = 0.9;
-            driveCoefficientRot = 0.5;
-        } else if (sequence == SuperStructure.Sequences.HIGH_CHAMBER_PLACE ||sequence==SuperStructure.Sequences.ASCENT){
-            driveCoefficientRot = 0.7;
-            driveCoefficientTrans = 0.7;
-        }else{
-            driveCoefficientTrans = 1;
-            driveCoefficientRot = 1;
-        }
+        /*
+        Same deal here.
+         */
 
         if(ignoreDriveCoefficients) {
             driveCoefficientTrans = 1;
@@ -509,7 +482,7 @@ public class NewMecanumDrive extends MecanumDrive {
 
     private double simpleMove_x_Tolerance = 1.25, simpleMove_y_Tolerance = 1.25, simpleMoveRotationTolerance = Math.toRadians(10);
     private double simpleMovePower = 0.95;
-    public boolean simpleMoveIsActivate = false; //private
+    public boolean simpleMoveIsActivate = false;
 
     public void setSimpleMoveTolerance(double x, double y, double rotation) {
         simpleMove_x_Tolerance = x;
@@ -550,19 +523,11 @@ public class NewMecanumDrive extends MecanumDrive {
         armUpTurnPID.setTargetPosition(0);
     }
 
-    //    @Deprecated
-    public boolean simpleMoveInDistress = false;
     public void moveTo(Pose2d endPose, int correctTime_ms) {
         long startTime = System.currentTimeMillis();
-        simpleMoveInDistress = false;
         initSimpleMove(endPose);
         while (isBusy()) {
             updateRunnable.run();
-//            if(System.currentTimeMillis() - startTime > 10000){
-//                simpleMoveIsActivate = false;
-//                setMotorPowers(0, 0, 0, 0);
-//                simpleMoveInDistress = true;
-//            }
         }
         long endTime = System.currentTimeMillis() + correctTime_ms;
         while (endTime > System.currentTimeMillis()) {
@@ -574,16 +539,10 @@ public class NewMecanumDrive extends MecanumDrive {
 
     public void moveTo(Pose2d endPose, int correctTime_ms, Runnable runWhileMoving) {
         long startTime = System.currentTimeMillis();
-        simpleMoveInDistress = false;
         initSimpleMove(endPose);
         while (isBusy()) {
             updateRunnable.run();
             runWhileMoving.run();
-//            if(System.currentTimeMillis() - startTime > 10000){
-////                simpleMoveIsActivate = false;
-//                setMotorPowers(0, 0, 0, 0);
-//                simpleMoveInDistress = true;
-//            }
         }
         long endTime = System.currentTimeMillis() + correctTime_ms;
         while (endTime > System.currentTimeMillis()) {
@@ -594,113 +553,6 @@ public class NewMecanumDrive extends MecanumDrive {
         setMotorPowers(0, 0, 0, 0);
     }
 
-    /*
-    startPose and endPose must have (same x && !same y) || (same y && !same x).
-    Also this only works for four directions because I am bad at geometry. --Annie
-     */
-    private double turnWheelSpeedDiff = 0;
-    private double poseDiff;
-    private double[] motorPowerStorage = new double[4];
-    private turnDirection direction;
-    public void calculateSemicircles(Pose2d startPose, Pose2d endPose){
-        if(endPose.getY() == startPose.getY()){
-            poseDiff = endPose.getX() - startPose.getX();
-            //Difference is calculated based on x direction.
-            turnWheelSpeedDiff = calculateWheelSpeedDiff(poseDiff);
-            if(Math.toDegrees(startPose.getHeading()) == 0){
-                direction = poseDiff>0? turnDirection.LEFT:turnDirection.RIGHT;
-            }else if(Math.toDegrees(startPose.getHeading()) == 180){
-                direction = poseDiff>0? turnDirection.RIGHT:turnDirection.LEFT;
-            }
-        }else{
-            poseDiff = endPose.getY() - startPose.getY();
-            //Difference is calculated based on y direction.
-            turnWheelSpeedDiff = calculateWheelSpeedDiff(poseDiff);
-            if(Math.toDegrees(startPose.getHeading()) == 90){
-                direction = poseDiff>0? turnDirection.RIGHT:turnDirection.LEFT;
-            }else if(Math.toDegrees(startPose.getHeading()) == 270) {
-                direction = poseDiff > 0 ? turnDirection.LEFT : turnDirection.RIGHT;
-            }
-        }
-
-        if(endPose.getHeading() > startPose.getHeading()){
-            stopSemicircling = odo.getHeading() > endPose.getHeading();
-        }else{
-            stopSemicircling = odo.getHeading() < endPose.getHeading();
-        }
-    }
-    public double[] setStitchSemicirclePower(){
-        if(direction == turnDirection.LEFT){
-            motorPowerStorage[0] = 1-turnWheelSpeedDiff;
-            motorPowerStorage[1] = 1-turnWheelSpeedDiff;
-            motorPowerStorage[2] = 1;
-            motorPowerStorage[3] = 1;
-        }else{
-            motorPowerStorage[0] = 1;
-            motorPowerStorage[1] = 1;
-            motorPowerStorage[2] = 1-turnWheelSpeedDiff;
-            motorPowerStorage[3] = 1-turnWheelSpeedDiff;
-        }
-        return motorPowerStorage;
-    }
-
-    public boolean stopSemicircling = true;
-    public void stitchSemicircleTo(Pose2d startPose, Pose2d endPose, int correctTime_ms){
-        long startTime = System.currentTimeMillis();
-        simpleMoveInDistress = false;
-        stopSemicircling = false;
-        setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        calculateSemicircles(startPose, endPose);
-        initSimpleMove(endPose);
-        while (isBusy()) {
-            updateRunnable.run();
-            while(!stopSemicircling){
-                setMotorPowers(setStitchSemicirclePower());
-                updateRunnable.run();
-            }
-        }
-        long endTime = System.currentTimeMillis() + correctTime_ms;
-        while (endTime > System.currentTimeMillis()) {
-            updateRunnable.run();
-        }
-        simpleMoveIsActivate = false;
-        setMotorPowers(0, 0, 0, 0);
-        setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
-    }
-
-    //TODO: MATH!
-    public static double semicircleCoefficient = 1.1;
-    private double calculateWheelSpeedDiff(double poseDiff){
-        //Apply math
-        return 1.2;
-    }
-    private enum turnDirection{
-        LEFT, RIGHT
-    }
-
-    public void moveWithNoBrake(Pose2d...poses){
-        setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        for(Pose2d p:poses){
-            moveTo(p,0);
-        }
-        setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-    }
-
-    public void moveWithoutStopping(Pose2d endPose, int correctTime_ms) {
-        long startTime = System.currentTimeMillis();
-        simpleMoveInDistress = false;
-        initSimpleMove(endPose);
-        while (isBusy()) {
-            updateRunnable.run();
-        }
-        long endTime = System.currentTimeMillis() + correctTime_ms;
-        while (endTime > System.currentTimeMillis()) {
-            updateRunnable.run();
-        }
-        simpleMoveIsActivate = false;
-//        setMotorPowers(0, 0, 0, 0);
-    }
 
     public Pose2d getSimpleMovePosition() {
         return new Pose2d(transPID_x.getTargetPosition(), transPID_y.getTargetPosition(), moveHeading);
@@ -756,50 +608,6 @@ public class NewMecanumDrive extends MecanumDrive {
         setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE); // 恢复刹车行为
     }
 
-    // 移动到目标点并在接近时停止施加功率
-    public void moveToWithDrift(Pose2d targetPose) {
-        double driftThreshold = 2;
-
-        while (true) {
-            // 获取当前机器人位置
-            Pose2d currentPose = getPoseEstimate();
-            double distanceToTarget = calculateDistance(currentPose, targetPose); // 计算到目标点的距离
-
-            if (distanceToTarget <= driftThreshold) {
-                setMotorPowers(0, 0, 0, 0); // 停止电机功率，让机器人漂移
-                break;
-            }
-
-            // 根据距离计算速度，逐渐减小速度
-            double speed = calculateSpeed(distanceToTarget);
-            double motorPower = speed;
-
-            // 设置电机功率
-            setMotorPowers(motorPower, motorPower, motorPower, motorPower);
-        }
-    }
-
-    // 计算当前点与目标点之间的距离
-    private double calculateDistance(Pose2d currentPose, Pose2d targetPose) {
-        double dx = targetPose.getX() - currentPose.getX();
-        double dy = targetPose.getY() - currentPose.getY();
-        return Math.sqrt(dx * dx + dy * dy); // 使用欧几里得距离
-    }
-
-    // 根据距离计算速度
-    private double calculateSpeed(double distanceToTarget) {
-        double maxSpeed = 1.0; // 最大速度
-        double minSpeed = 0.1; // 最小速度（可调整，确保机器人慢速接近）
-
-        // 距离越近，速度越小（线性比例缩放）
-        double speed = maxSpeed * (distanceToTarget / 3.5);
-        return Math.min(speed, maxSpeed); // 确保速度不大于最大值
-    }
-
-    // 将速度转换为电机功率
-    private double speedToMotorPower(double speed) {
-        return speed; // 假设速度范围与功率范围一致
-    }
 
 
     /**
@@ -864,13 +672,10 @@ public class NewMecanumDrive extends MecanumDrive {
         yawHeading = odo.getHeading();
     }
 
-    public void resetOdo(){
+    public void recalibrateOdo(){
         odo.recalibrateIMU();
     }
-//    public double getHeading(){
-//        Pose2D pos = odo.getPosition();
-//        return pos.getHeading(AngleUnit.DEGREES);
-//    }
+
 
     public Pose2d lastStoredPos;
     public void storeCurrentPos(){
