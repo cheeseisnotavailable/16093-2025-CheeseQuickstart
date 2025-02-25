@@ -1,4 +1,4 @@
-## This is the base of the code structure I came up with for 16093's Into the Deep Season
+## This is the base of the code structure we used for 16093's Into the Deep Season
 
 With contributions from lyk and lhw!
 
